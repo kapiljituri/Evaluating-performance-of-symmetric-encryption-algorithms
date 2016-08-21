@@ -1,8 +1,13 @@
+import sys
+import os
 import time
+import pickle
 from Crypto.Cipher import AES
 from progressbar import ProgressBar
 
 SRC_FILE = "../res/milNum.txt"
+ENC_PICKLE_FILE = "data1.pkl"
+DEC_PICKLE_FILE = "data2.pkl"
 PADDING = "{"
 
 class bcolors:
@@ -14,6 +19,22 @@ class bcolors:
     ENDC = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
+
+class Data(object):
+    def __init__(self, word):
+        self.word = word
+
+def getLineCountFromFile(fileName):
+
+    print("Reading word count...")
+
+    mFile = open(fileName, 'r')
+    numLines = sum(1 for line in mFile)
+    mFile.close()
+
+    print("Total words: " + str(numLines))
+ 
+    return numLines
 
 def mEncrypt(plainText):
     encryption_suite = AES.new('This is a key123', AES.MODE_CBC, 'This is an IV456')
@@ -32,40 +53,32 @@ def mDecrypt(cipheredText):
 
     return plain_text[:len(plain_text)-l]
 
+def cleanup():
+    os.remove(ENC_PICKLE_FILE)
+    os.remove(DEC_PICKLE_FILE)
+    print("\nRemoved residue files")
+
 def main():
 
-    mFile = open(SRC_FILE, "r")
-    bigList = []
-    cryptedList = []
-    decryptedList = []
-
-    print("\nReading source file...")
-    size = 0
-    for word in mFile:
-        if not "{" in word:
-            size += 1
-            bigList.append(word.rstrip("\n"))
-    mFile.close()
-
-    totalSize = size
-    print("Total words: " + str(size))
-
-    pbar = ProgressBar()
+    numLines = getLineCountFromFile(SRC_FILE)
 
     ###################################################################
     #                           ENCRYPTION                            #
     ###################################################################
+
     print("\nEncrypting...")
     mainStartTime = startTime = time.time()
 
-    for word in pbar(bigList):
-        cryptedList.append(mEncrypt(word))
+    pbar = ProgressBar()
+    with open(SRC_FILE, "r") as srcFile:
+        with open(ENC_PICKLE_FILE, "wb") as encPickleFile:
+            for _ in pbar(range(numLines)):
+                mData = Data(mEncrypt(next(srcFile).rstrip("\n")))
+                pickle.dump(mData, encPickleFile, pickle.HIGHEST_PROTOCOL)
 
     encEndTime = time.time()
-
     print("Total time for encryption: " + bcolors.OKBLUE + str(round((encEndTime - startTime), 2)) + " sec" + bcolors.ENDC)
 
-    pbar2 = ProgressBar()
 
     ###################################################################
     #                           DECRYPTION                            #
@@ -74,38 +87,51 @@ def main():
     print("\nDecrypting...")
     startTime = time.time()
 
-    for word in pbar2(cryptedList):
-        decryptedList.append(mDecrypt(word))
+    pbar2 = ProgressBar()
+    with open(ENC_PICKLE_FILE, "rb") as encPickleFile:
+        with open(DEC_PICKLE_FILE, "wb") as decPickleFile:
+            for _ in pbar2(range(numLines)):
+                decrypted = Data(mDecrypt(pickle.load(encPickleFile).word))
+                pickle.dump(decrypted, decPickleFile, pickle.HIGHEST_PROTOCOL)
 
     mainEndTime = decEndTime = time.time()
 
     print("Total time for decryption: " + bcolors.OKBLUE + str(round((decEndTime - startTime), 2)) + " sec" + bcolors.ENDC)
 
-    del cryptedList[:]
 
     ###################################################################
     #                             VERIFY                              #
     ###################################################################
 
-    print("\nComparing source and decrypted list...")
+    print("\nComparing source and decrypted files...")
     bothFilesAreSame = True
     failCounter = 0
 
-    for s, d in zip(bigList, decryptedList):
-        if s != d:
-            print(bcolors.WARNING + s + " and " + d + " don't match !!" + bcolors.ENDC)
-            failCounter += 1
-            bothFilesAreSame = False
+    pbar3 = ProgressBar()
+    with open(SRC_FILE, "r") as srcFile:
+        with open(DEC_PICKLE_FILE, "rb") as decPickleFile:
+            for _ in pbar3(range(numLines)):
+                source = next(srcFile).rstrip("\n")
+                decrypted = pickle.load(decPickleFile).word
+                
+                if source != decrypted:
+                    print(bcolors.WARNING + s + " and " + d + " don't match !!" + bcolors.ENDC)
+                    failCounter += 1
+                    bothFilesAreSame = False
+
+    
+    ###################################################################
+    #                             RESULT                              #
+    ###################################################################
 
     if bothFilesAreSame:
-        print(bcolors.OKGREEN + "Both lists are same !\n" + bcolors.ENDC)
+        print("\n" + bcolors.BOLD + "Result: " + bcolors.OKGREEN + "Both lists are same !\n" + bcolors.ENDC)
         print("It took total " + bcolors.BOLD + str(round(mainEndTime - mainStartTime, 2)) + " sec" + bcolors.ENDC
-              + " to Encrypt and Decrypt " + bcolors.BOLD + str(totalSize) + " words\n" + bcolors.ENDC)
+              + " to Encrypt and Decrypt " + bcolors.BOLD + str(numLines) + " words" + bcolors.ENDC)
     else:
         print(("\n" + bcolors.FAIL + str(failCounter) + " words don't match\n" + bcolors.ENDC))
 
-    del bigList[:]
-    del decryptedList[:]
+    cleanup()
 
 
 if __name__ == "__main__":
