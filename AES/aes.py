@@ -1,8 +1,8 @@
-import sys, os, time, pickle
+import sys, os, time, pickle, argparse
 from Crypto.Cipher import AES
 from progressbar import ProgressBar, AnimatedMarker, Bar, ETA, ReverseBar, Percentage
 
-SRC_FILE = "../res/milNum.txt"
+SRC_FILE = "res/milNum.txt"
 SRC_PICKLE_FILE = "source.pkl"
 ENC_PICKLE_FILE = "encrypted.pkl"
 DEC_PICKLE_FILE = "decrypted.pkl"
@@ -73,6 +73,11 @@ def cleanup():
 
 def main():
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument("wordlist_file", help="A simple text file who's each line will be encrypted and then decrypted to evaluate performance of AES encryption.")
+    args = parser.parse_args()
+
+    SRC_FILE = args.wordlist_file
     numLines = getLineCountFromFile(SRC_FILE)
 
     initialize(SRC_FILE, numLines)
