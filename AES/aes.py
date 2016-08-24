@@ -1,4 +1,4 @@
-import sys, os, time, pickle, argparse
+import sys, os, time, pickle, argparse, hashlib
 from Crypto.Cipher import AES
 from progressbar import ProgressBar, AnimatedMarker, Bar, ETA, ReverseBar, Percentage
 
@@ -71,8 +71,15 @@ def cleanup():
     os.remove(ENC_PICKLE_FILE)
     os.remove(DEC_PICKLE_FILE)
 
+def similarMD5(file1, file2):
+    if hashlib.md5(open(file1, 'rb').read()).hexdigest() == hashlib.md5(open(file2, 'rb').read()).hexdigest():
+        return True
+    else:
+        return False
+
 def main():
 
+    global SRC_FILE
     parser = argparse.ArgumentParser()
     parser.add_argument("wordlist_file", help="A simple text file who's each line will be encrypted and then decrypted to evaluate performance of AES encryption.")
     args = parser.parse_args()
@@ -124,20 +131,26 @@ def main():
     ###################################################################
 
     print("\nComparing source and decrypted files...")
-    bothFilesAreSame = True
+
+    bothFilesAreSame = False
     failCounter = 0
 
-    pbar3 = ProgressBar(widgets=SIMPLE_PROGRESS_WIDGET)
-    with open(SRC_FILE, "r") as srcFile:
-        with open(DEC_PICKLE_FILE, "rb") as decPickleFile:
-            for _ in pbar3(range(numLines)):
-                source = next(srcFile).rstrip("\n")
-                decrypted = pickle.load(decPickleFile).word
-                
-                if source != decrypted:
-                    print(bcolors.WARNING + source + " != " + decrypted + bcolors.ENDC)
-                    failCounter += 1
-                    bothFilesAreSame = False
+    if not similarMD5(SRC_PICKLE_FILE, DEC_PICKLE_FILE):
+
+        # Print words which are not similar in source and decrypted files
+        pbar3 = ProgressBar(widgets=SIMPLE_PROGRESS_WIDGET)
+        with open(SRC_FILE, "r") as srcFile:
+            with open(DEC_PICKLE_FILE, "rb") as decPickleFile:
+                for _ in pbar3(range(numLines)):
+                    source = next(srcFile).rstrip("\n")
+                    decrypted = pickle.load(decPickleFile).word
+                    
+                    if source != decrypted:
+                        print(bcolors.WARNING + source + " != " + decrypted + bcolors.ENDC)
+                        failCounter += 1
+                        bothFilesAreSame = False
+    else:
+        bothFilesAreSame = True
 
     
     ###################################################################

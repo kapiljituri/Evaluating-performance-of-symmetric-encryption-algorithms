@@ -1,17 +1,16 @@
 # Symmetric-Encryption-Algorithms
-Evaluating performance of well known symmetric encryption algorithms using Python
+Evaluating performance of well known symmetric encryption algorithm
 
-## Setup environment
+## Environment setup:
 
 **Install PIP in Ubuntu**
 ```sh
 $ sudo apt-get install python-pip
 ```
 
-**Install Pycrypto and Progress-bar packages via Python PIP**
+**Install Pycrypto and Progress-bar packages from Python PIP**
 ```sh
-$ sudo pip install pycrypto
-$ sudo pip install progressbar
+$ sudo pip install pycrypto progressbar
 ```
 
 ## Usage
