@@ -83,10 +83,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("wordlist_file", help="A simple text file who's each line will be encrypted and then decrypted to evaluate performance of AES encryption.")
     args = parser.parse_args()
-
     SRC_FILE = args.wordlist_file
+    
     numLines = getLineCountFromFile(SRC_FILE)
-
     initialize(SRC_FILE, numLines)
 
     ###################################################################
@@ -94,9 +93,10 @@ def main():
     ###################################################################
 
     print("\n" + bcolors.HIGHLIGHT + "Encrypting..." + bcolors.ENDC)
+    pbar = ProgressBar(widgets=MAIN_PROGRESS_WIDGET)
+
     mainStartTime = startTime = time.time()
 
-    pbar = ProgressBar(widgets=MAIN_PROGRESS_WIDGET)
     with open(SRC_PICKLE_FILE, "rb") as srcPickleFile:
         with open(ENC_PICKLE_FILE, "wb") as encPickleFile:
             for _ in pbar(range(numLines)):
@@ -112,9 +112,10 @@ def main():
     ###################################################################
 
     print("\n" + bcolors.HIGHLIGHT + "Decrypting..." + bcolors.ENDC)
+    pbar2 = ProgressBar(widgets=MAIN_PROGRESS_WIDGET)
+
     startTime = time.time()
 
-    pbar2 = ProgressBar(widgets=MAIN_PROGRESS_WIDGET)
     with open(ENC_PICKLE_FILE, "rb") as encPickleFile:
         with open(DEC_PICKLE_FILE, "wb") as decPickleFile:
             for _ in pbar2(range(numLines)):
@@ -122,7 +123,6 @@ def main():
                 pickle.dump(decrypted, decPickleFile, pickle.HIGHEST_PROTOCOL)
 
     mainEndTime = decEndTime = time.time()
-
     print("Total time for decryption: " + bcolors.OKBLUE + str(round((decEndTime - startTime), 2)) + " sec" + bcolors.ENDC)
 
 
