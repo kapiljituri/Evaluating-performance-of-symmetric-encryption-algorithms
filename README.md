@@ -14,6 +14,13 @@ $ sudo pip install pycrypto progressbar
 ```
 
 ## Usage
+> Format: $ python aes.py mode=file/mem wordlist1 wordlist2 ... wordlistN
+
 ```sh
-$ python AES/aes.py res/milNum.txt
+$ python AES/aes.py file res/milNum.txt
+```
+
+For multiple source files
+```sh
+$ python AES/aes.py file res/millionNum.txt res/thousandNum.txt
 ```

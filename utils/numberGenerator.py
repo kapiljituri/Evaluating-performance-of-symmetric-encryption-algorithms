@@ -1,6 +1,6 @@
 '''
 USAGE:
-	$ python numberGenerator.py 100000 hundredThousandNum.txt
+	$ python numberGenerator.py 1000 thousandNum.txt
 '''
 
 import sys
