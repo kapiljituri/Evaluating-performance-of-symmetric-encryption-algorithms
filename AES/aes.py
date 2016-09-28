@@ -5,11 +5,14 @@ from progressbar import ProgressBar, AnimatedMarker, Bar, ETA, ReverseBar, Perce
 SRC_PICKLE_FILE = "source.pkl"
 ENC_PICKLE_FILE = "encrypted.pkl"
 DEC_PICKLE_FILE = "decrypted.pkl"
+SRC_LIST = []
+ENC_LIST = []
+DEC_LIST = []
 PADDING = str(chr(222))
 
 SIMPLE_PROGRESS_WIDGET = [' ', Percentage(), ' ', Bar('-'), ' ', ETA(), '  ']
-MAIN_PROGRESS_WIDGET = [' ', Percentage(), ' ', Bar('>'), ' ', ETA(), '  ']
-SEPERATOR = '#'
+MAIN_PROGRESS_WIDGET = [' ', Percentage(), ' ', Bar('='), ' ', ETA(), '  ']
+SEPERATOR = ':'
 
 class bcolors:
     HEADER = '\033[95m'
@@ -20,6 +23,7 @@ class bcolors:
     FAIL = '\033[91m'
     ENDC = '\033[0m'
     BOLD = '\033[1m'
+    RED = '\033[91m'
     UNDERLINE = '\033[4m'
     CYAN = '\033[96m'
 
@@ -85,18 +89,32 @@ def main():
     parser.add_argument("wordlist_file", nargs="*", help="Each line of given plain text file will be encrypted and then decrypted to evaluate performance.")
     args = parser.parse_args()
 
-    print args
+    if args.mode != "mem" and args.mode != "file":
+        print(bcolors.BOLD + args.mode + bcolors.ENDC + " is not a valid mode..")
+        quit()
 
     _, windowColumns = os.popen('stty size', 'r').read().split()
 
     for SRC_FILE in args.wordlist_file:
 
         if len(args.wordlist_file) > 1:
-            print bcolors.CYAN + SEPERATOR * int(windowColumns) + bcolors.ENDC
+            print bcolors.RED + SEPERATOR * int(windowColumns) + bcolors.ENDC
 
         print "Working on " + bcolors.HEADER + SRC_FILE + bcolors.ENDC
         numLines = getLineCountFromFile(SRC_FILE)
-        initialize(SRC_FILE, numLines)
+
+        if args.mode == "file":
+            initialize(SRC_FILE, numLines)
+        else: #args.mode == "mem"
+            SRC_LIST = []
+            ENC_LIST = []
+            DEC_LIST = []
+            pbar = ProgressBar(widgets=SIMPLE_PROGRESS_WIDGET)
+            print("\nInitializing...")
+
+            with open(SRC_FILE, 'r') as srcFile:
+                for _ in pbar(range(numLines)):
+                    SRC_LIST.append(srcFile.next().rstrip("\n"))
 
         ###################################################################
         #                           ENCRYPTION                            #
@@ -107,11 +125,15 @@ def main():
 
         mainStartTime = startTime = time.time()
 
-        with open(SRC_PICKLE_FILE, "rb") as srcPickleFile:
-            with open(ENC_PICKLE_FILE, "wb") as encPickleFile:
-                for _ in pbar(range(numLines)):
-                    mData = Data(mEncrypt(pickle.load(srcPickleFile).word))
-                    pickle.dump(mData, encPickleFile, pickle.HIGHEST_PROTOCOL)
+        if args.mode == "file":
+            with open(SRC_PICKLE_FILE, "rb") as srcPickleFile:
+                with open(ENC_PICKLE_FILE, "wb") as encPickleFile:
+                    for _ in pbar(range(numLines)):
+                        mData = Data(mEncrypt(pickle.load(srcPickleFile).word))
+                        pickle.dump(mData, encPickleFile, pickle.HIGHEST_PROTOCOL)
+        else: #args.mode == "mem"
+            for line in pbar(SRC_LIST):
+                ENC_LIST.append(mEncrypt(line))
 
         encEndTime = time.time()
         print("Total time for encryption: " + bcolors.OKGREEN + str(round((encEndTime - startTime), 2)) + " sec" + bcolors.ENDC)
@@ -126,11 +148,15 @@ def main():
 
         startTime = time.time()
 
-        with open(ENC_PICKLE_FILE, "rb") as encPickleFile:
-            with open(DEC_PICKLE_FILE, "wb") as decPickleFile:
-                for _ in pbar2(range(numLines)):
-                    decrypted = Data(mDecrypt(pickle.load(encPickleFile).word))
-                    pickle.dump(decrypted, decPickleFile, pickle.HIGHEST_PROTOCOL)
+        if args.mode == "file":
+            with open(ENC_PICKLE_FILE, "rb") as encPickleFile:
+                with open(DEC_PICKLE_FILE, "wb") as decPickleFile:
+                    for _ in pbar2(range(numLines)):
+                        decrypted = Data(mDecrypt(pickle.load(encPickleFile).word))
+                        pickle.dump(decrypted, decPickleFile, pickle.HIGHEST_PROTOCOL)
+        else: #args.mode == "mem"
+            for line in pbar2(ENC_LIST):
+                DEC_LIST.append(mDecrypt(line))
 
         mainEndTime = decEndTime = time.time()
         print("Total time for decryption: " + bcolors.OKGREEN + str(round((decEndTime - startTime), 2)) + " sec" + bcolors.ENDC)
@@ -144,23 +170,30 @@ def main():
 
         bothFilesAreSame = False
         failCounter = 0
+        pbar3 = ProgressBar(widgets=SIMPLE_PROGRESS_WIDGET)
 
-        if not similarMD5(SRC_PICKLE_FILE, DEC_PICKLE_FILE):
+        if args.mode == "file":
+            if not similarMD5(SRC_PICKLE_FILE, DEC_PICKLE_FILE):
+                # Print words which are not similar in source and decrypted files
+                with open(SRC_FILE, "r") as srcFile:
+                    with open(DEC_PICKLE_FILE, "rb") as decPickleFile:
+                        for _ in pbar3(range(numLines)):
+                            source = next(srcFile).rstrip("\n")
+                            decrypted = pickle.load(decPickleFile).word
 
-            # Print words which are not similar in source and decrypted files
-            pbar3 = ProgressBar(widgets=SIMPLE_PROGRESS_WIDGET)
-            with open(SRC_FILE, "r") as srcFile:
-                with open(DEC_PICKLE_FILE, "rb") as decPickleFile:
-                    for _ in pbar3(range(numLines)):
-                        source = next(srcFile).rstrip("\n")
-                        decrypted = pickle.load(decPickleFile).word
-
-                        if source != decrypted:
-                            print(bcolors.WARNING + source + " != " + decrypted + bcolors.ENDC)
-                            failCounter += 1
-                            bothFilesAreSame = False
+                            if source != decrypted:
+                                print(bcolors.FAIL + source + " != " + decrypted + bcolors.ENDC)
+                                failCounter += 1
+                                bothFilesAreSame = False
+            else:
+                bothFilesAreSame = True
         else:
             bothFilesAreSame = True
+            for x, y in pbar3(zip(SRC_LIST, DEC_LIST)):
+                if x != y:
+                    print(bcolors.FAIL + x + " != " + y + bcolors.ENDC + " " + SRC_FILE)
+                    failCounter += 1
+                    bothFilesAreSame = False
 
 
         ###################################################################
@@ -168,15 +201,19 @@ def main():
         ###################################################################
 
         if bothFilesAreSame:
-            print("Result: Both files are same !")
+            if args.mode == "file":
+                print("\nResult: Both files are same !")
+            else:
+                print("\nResult: Both lists are same !")
             print(bcolors.BOLD + "Total time: " + bcolors.OKGREEN + str(round(mainEndTime - mainStartTime, 2)) + " sec" + bcolors.ENDC)
         else:
             print(("\n" + bcolors.FAIL + str(failCounter) + " words don't match\n" + bcolors.ENDC))
 
-        cleanup()
+        if args.mode == "file":
+            cleanup()
 
     if len(args.wordlist_file) > 1:
-        print bcolors.CYAN + SEPERATOR * int(windowColumns) + bcolors.ENDC
+        print bcolors.RED + SEPERATOR * int(windowColumns) + bcolors.ENDC
 
 if __name__ == "__main__":
     main()
