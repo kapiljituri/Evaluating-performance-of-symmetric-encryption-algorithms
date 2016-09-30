@@ -94,6 +94,7 @@ def main():
         quit()
 
     _, windowColumns = os.popen('stty size', 'r').read().split()
+    encTime = decTime = 0
 
     for SRC_FILE in args.wordlist_file:
 
@@ -136,7 +137,8 @@ def main():
                 ENC_LIST.append(mEncrypt(line))
 
         encEndTime = time.time()
-        print("Total time for encryption: " + bcolors.OKGREEN + str(round((encEndTime - startTime), 2)) + " sec" + bcolors.ENDC)
+        encTime = round((encEndTime - startTime), 4)
+        print("Total time for encryption: " + bcolors.OKGREEN + str(encTime) + " sec" + bcolors.ENDC)
 
 
         ###################################################################
@@ -159,7 +161,8 @@ def main():
                 DEC_LIST.append(mDecrypt(line))
 
         mainEndTime = decEndTime = time.time()
-        print("Total time for decryption: " + bcolors.OKGREEN + str(round((decEndTime - startTime), 2)) + " sec" + bcolors.ENDC)
+        decTime = round((decEndTime - startTime), 4)
+        print("Total time for decryption: " + bcolors.OKGREEN + str(decTime) + " sec" + bcolors.ENDC)
 
 
         ###################################################################
@@ -171,8 +174,11 @@ def main():
         bothFilesAreSame = False
         failCounter = 0
         pbar3 = ProgressBar(widgets=SIMPLE_PROGRESS_WIDGET)
+        srcSize = encSize = 0
 
         if args.mode == "file":
+            srcSize = os.path.getsize(SRC_PICKLE_FILE)
+            encSize = os.path.getsize(ENC_PICKLE_FILE)
             if not similarMD5(SRC_PICKLE_FILE, DEC_PICKLE_FILE):
                 # Print words which are not similar in source and decrypted files
                 with open(SRC_FILE, "r") as srcFile:
@@ -187,11 +193,13 @@ def main():
                                 bothFilesAreSame = False
             else:
                 bothFilesAreSame = True
-        else:
+        else: #args.mode == "mem"
             bothFilesAreSame = True
-            for x, y in pbar3(zip(SRC_LIST, DEC_LIST)):
-                if x != y:
-                    print(bcolors.FAIL + x + " != " + y + bcolors.ENDC + " " + SRC_FILE)
+            for x, y, z in pbar3(zip(SRC_LIST, ENC_LIST, DEC_LIST)):
+                srcSize += sys.getsizeof(x)
+                encSize += sys.getsizeof(y)
+                if x != z:
+                    print(bcolors.FAIL + x + " != " + z + bcolors.ENDC + " " + SRC_FILE)
                     failCounter += 1
                     bothFilesAreSame = False
 
@@ -202,10 +210,13 @@ def main():
 
         if bothFilesAreSame:
             if args.mode == "file":
-                print("\nResult: Both files are same !")
-            else:
-                print("\nResult: Both lists are same !")
-            print(bcolors.BOLD + "Total time: " + bcolors.OKGREEN + str(round(mainEndTime - mainStartTime, 2)) + " sec" + bcolors.ENDC)
+                print("Result: Both files are same !\n")
+            else: #args.mode == "mem"
+                print("Result: Both lists are same !\n")
+
+            print("Encrypted data is " + bcolors.UNDERLINE + str((encSize*100)/srcSize) + "%" + bcolors.ENDC + " of original data.")
+            print("Encryption time is " + bcolors.UNDERLINE + str((encTime*100)/decTime) + "%" + bcolors.ENDC + " of Decryption time.")
+            print(bcolors.BOLD + "Total time: " + bcolors.OKGREEN + str(round(mainEndTime - mainStartTime, 4)) + " sec" + bcolors.ENDC)
         else:
             print(("\n" + bcolors.FAIL + str(failCounter) + " words don't match\n" + bcolors.ENDC))
 
