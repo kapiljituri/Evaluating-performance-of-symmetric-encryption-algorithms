@@ -10,8 +10,8 @@ ENC_LIST = []
 DEC_LIST = []
 PADDING = str(chr(222))
 
-SIMPLE_PROGRESS_WIDGET = [' ', Percentage(), ' ', Bar('-'), ' ', ETA(), '  ']
-MAIN_PROGRESS_WIDGET = [' ', Percentage(), ' ', Bar('='), ' ', ETA(), '  ']
+SIMPLE_PROGRESS_WIDGET = [' '*10, Percentage(), ' ', Bar('-'), ' ', ETA(), ' '*15]
+MAIN_PROGRESS_WIDGET = [' '*15, Percentage(), ' ', Bar('#'), ' ', ETA(), ' '*15]
 SEPERATOR = ':'
 
 class bcolors:
