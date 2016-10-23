@@ -14,6 +14,9 @@ SIMPLE_PROGRESS_WIDGET = [' '*10, Percentage(), ' ', Bar('-'), ' ', ETA(), ' '*1
 MAIN_PROGRESS_WIDGET = [' '*15, Percentage(), ' ', Bar('#'), ' ', ETA(), ' '*15]
 SEPERATOR = ':'
 
+encryption_suite = AES.new('This is a key123', AES.MODE_CBC, 'This is an IV456')
+decryption_suite = AES.new('This is a key123', AES.MODE_CBC, 'This is an IV456')
+
 class bcolors:
     HEADER = '\033[95m'
     HIGHLIGHT = '\033[7m'
@@ -55,7 +58,7 @@ def getLineCountFromFile(fileName):
     return numLines
 
 def mEncrypt(plainText):
-    encryption_suite = AES.new('This is a key123', AES.MODE_CBC, 'This is an IV456')
+    global encryption_suite
     length = (len(plainText) % 16)
 
     if length is not 0:
@@ -64,7 +67,7 @@ def mEncrypt(plainText):
     return encryption_suite.encrypt(plainText)
 
 def mDecrypt(cipheredText):
-    decryption_suite = AES.new('This is a key123', AES.MODE_CBC, 'This is an IV456')
+    global decryption_suite
     plain_text = decryption_suite.decrypt(cipheredText)
 
     l = plain_text.count(PADDING)
@@ -107,9 +110,9 @@ def main():
         if args.mode == "file":
             initialize(SRC_FILE, numLines)
         else: #args.mode == "mem"
-            SRC_LIST = []
-            ENC_LIST = []
-            DEC_LIST = []
+            del SRC_LIST[:]
+            del ENC_LIST[:]
+            del DEC_LIST[:]
             pbar = ProgressBar(widgets=SIMPLE_PROGRESS_WIDGET)
             print("\nInitializing...")
 
