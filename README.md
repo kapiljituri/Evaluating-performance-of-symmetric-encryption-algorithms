@@ -10,7 +10,7 @@ $ sudo apt-get install python-pip
 
 **Install Pycrypto and Progress-bar packages from Python PIP**
 ```sh
-$ sudo pip install pycrypto progressbar
+$ sudo pip install pycrypto progressbar xlwt
 ```
 
 ## Usage
